@@ -1,0 +1,84 @@
+cmake_minimum_required (VERSION 3.7)
+cmake_policy(VERSION 3.7...3.20)
+
+project(BufferTest64)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/CMake)
+
+set(CMAKE_CXX_STANDARD 17)
+
+file(GLOB_RECURSE SOURCES src/*.cpp src/*.c src/*.hpp src/*.h Data/Shaders/*.glsl)
+include_directories(src)
+
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
+    # Avoid warning 'IMPORTED_IMPLIB not set for imported target "sgl" configuration "MinSizeRel/RelWithDebInfo".'
+    set(CMAKE_CONFIGURATION_TYPES Debug Release)
+endif()
+
+if(MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W3 /EHsc /Zc:__cplusplus")
+elseif(CMAKE_COMPILER_IS_GNUCXX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+endif()
+
+# Prefer GLVND by default when available.
+if (${CMAKE_VERSION} VERSION_GREATER "3.11")
+    cmake_policy(SET CMP0072 NEW)
+endif()
+
+if(VCPKG_TOOLCHAIN)
+    if(EXISTS "${Z_VCPKG_ROOT_DIR}/triplets/${VCPKG_TARGET_TRIPLET}.cmake")
+        include("${Z_VCPKG_ROOT_DIR}/triplets/${VCPKG_TARGET_TRIPLET}.cmake")
+    elseif(EXISTS "${Z_VCPKG_ROOT_DIR}/triplets/community/${VCPKG_TARGET_TRIPLET}.cmake")
+        include("${Z_VCPKG_ROOT_DIR}/triplets/community/${VCPKG_TARGET_TRIPLET}.cmake")
+    else()
+        message(FATAL_ERROR "Could not find a vcpkg triplet file for ${VCPKG_TARGET_TRIPLET}.")
+    endif()
+endif()
+
+set(DATA_PATH "${CMAKE_SOURCE_DIR}/Data" CACHE PATH "Location of folder 'Data'")
+add_definitions(-DDATA_PATH=\"${DATA_PATH}\")
+
+if(WIN32)
+    add_executable(BufferTest64 WIN32 ${SOURCES})
+elseif(APPLE)
+    add_executable(BufferTest64 MACOSX_BUNDLE ${SOURCES})
+else()
+    add_executable(BufferTest64 ${SOURCES})
+endif()
+
+set(FPHSA_NAME_MISMATCHED TRUE)
+if(VCPKG_TOOLCHAIN)
+    find_package(SDL2 CONFIG REQUIRED)
+else()
+    find_package(SDL2 REQUIRED)
+endif()
+
+find_package(sgl QUIET)
+
+get_target_property(SGL_INTERFACE_COMPILE_DEFINITIONS sgl INTERFACE_COMPILE_DEFINITIONS)
+if (NOT "SUPPORT_VULKAN" IN_LIST SGL_INTERFACE_COMPILE_DEFINITIONS)
+    message(FATAL_ERROR "sgl was not built with Vulkan support enabled.")
+endif()
+
+if((${CMAKE_GENERATOR} STREQUAL "MinGW Makefiles") OR (${CMAKE_GENERATOR} STREQUAL "MSYS Makefiles"))
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mconsole")
+    else()
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
+    endif()
+    target_link_libraries(Correrender PUBLIC mingw32)
+endif()
+if(VCPKG_TOOLCHAIN)
+    target_link_libraries(Correrender PUBLIC SDL2::SDL2main)
+else()
+    target_link_libraries(Correrender PUBLIC SDL2::Main)
+endif()
+
+target_link_libraries(BufferTest64 PUBLIC sgl)
+include_directories(${sgl_INCLUDES})
+
+find_package(OpenMP REQUIRED)
+target_link_libraries(BufferTest64 PUBLIC OpenMP::OpenMP_CXX)

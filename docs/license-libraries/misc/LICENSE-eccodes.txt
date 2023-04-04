@@ -1,44 +1,27 @@
-This license applies to all project files not explicitly covered by a
-separate license (like Data/Fonts/DroidSans.ttf).
-This license does explicitly NOT cover used libraries.
+ECMWF ecCodes
+(C) Copyright 2005- ECMWF.
 
-----------------------------------------------------------------------------
+This product includes software developed at ECMWF (http://www.ecmwf.int).
 
-BSD 2-Clause License
+Parts of the definitions provided by WMO (http://www.wmo.int/pages/index_en.html)
 
-Copyright (c) 2023, Christoph Neuhauser
-All rights reserved.
+Microsoft Visual Studio support provided with the help of
+Finnish Meteorological Institute (FMI).
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
+Adaptive Entropy Coding (CCSDS) provided by
+The Max-Planck-Institute for Meteorology and Deutsches Klimarechenzentrum GmbH.
 
-1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer.
+IBM POWER optimisations were developed at
+The Max-Planck-Institute for Meteorology.
 
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
+Decoding double array optimisations provided by
+Norwegian Meteorological Institute.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+OpenMP API Support provided by Eric Millin.
 
-
-----------------------------------------------------------------------------
-
-The following license applies to Data/Fonts/DroidSans.ttf.
-
-DroidSans.ttf
-  Copyright (c) Steve Matteson
-  Apache License, version 2.0
-  https://www.fontsquirrel.com/fonts/droid-sans
+Fortran source code for grib_typeSizes.f90 from Robert Pincus
+Cooperative Institue for Meteorological Satellite Studies
+University of Wisconsin
 
                                  Apache License
                            Version 2.0, January 2004
@@ -228,7 +211,7 @@ DroidSans.ttf
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
 
-   Copyright [yyyy] [name of copyright owner]
+   Copyright 2005- ECMWF
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -241,3 +224,4 @@ DroidSans.ttf
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+

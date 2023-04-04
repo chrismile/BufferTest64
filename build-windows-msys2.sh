@@ -149,6 +149,8 @@ fi
 # CMake parameters for building the application.
 params=()
 
+popd >/dev/null # back to project root
+
 if [ $debug = true ] ; then
     echo "------------------------"
     echo "  building in debug     "

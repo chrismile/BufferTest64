@@ -32,10 +32,37 @@ SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 PROJECTPATH="$SCRIPTPATH"
 pushd $SCRIPTPATH > /dev/null
 
+run_program=true
 debug=false
+clean=false
 build_dir_debug=".build_debug"
 build_dir_release=".build_release"
 destination_dir="Shipping"
+
+# Process command line arguments.
+for ((i=1;i<=$#;i++));
+do
+    if [ ${!i} = "--do-not-run" ]; then
+        run_program=false
+    elif [ ${!i} = "--debug" ] || [ ${!i} = "debug" ]; then
+        debug=true
+    elif [ ${!i} = "--clean" ] || [ ${!i} = "clean" ]; then
+        clean=true
+    fi
+done
+
+if [ $clean = true ]; then
+    echo "------------------------"
+    echo " cleaning up old files  "
+    echo "------------------------"
+    rm -rf third_party/vcpkg/ .build_release/ .build_debug/ Shipping/
+    if grep -wq "sgl" .gitmodules; then
+        rm -rf third_party/sgl/install/ third_party/sgl/.build_release/ third_party/sgl/.build_debug/
+    else
+        rm -rf third_party/sgl/
+    fi
+    git submodule update --init --recursive
+fi
 
 is_installed_pacman() {
     local pkg_name="$1"
@@ -250,5 +277,6 @@ if [[ -z "${PATH+x}" ]]; then
 elif [[ ! "${PATH}" == *"${PROJECTPATH}/third_party/sgl/install/bin"* ]]; then
     export PATH="${PROJECTPATH}/third_party/sgl/install/bin:$PATH"
 fi
-./BufferTest64
-
+if [ $run_program = true ]; then
+    ./BufferTest64
+fi

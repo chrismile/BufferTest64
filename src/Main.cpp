@@ -66,18 +66,18 @@ int main(int argc, char *argv[]) {
 
     sgl::vk::Instance* instance = sgl::AppSettings::get()->getVulkanInstance();
     sgl::AppSettings::get()->getVulkanInstance()->setDebugCallback(&vulkanErrorCallbackHeadless);
-    sgl::vk::Device* device = new sgl::vk::Device;
+    auto* device = new sgl::vk::Device;
     sgl::vk::DeviceFeatures requestedDeviceFeatures{};
     requestedDeviceFeatures.requestedPhysicalDeviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
-    // For ensemble combination when using Vulkan-CUDA interop with PyTorch.
-    requestedDeviceFeatures.optionalPhysicalDeviceFeatures.shaderStorageBufferArrayDynamicIndexing = VK_TRUE;
-    requestedDeviceFeatures.optionalPhysicalDeviceFeatures.shaderSampledImageArrayDynamicIndexing = VK_TRUE;
-    requestedDeviceFeatures.optionalPhysicalDeviceFeatures.shaderInt64 = VK_TRUE;
-    requestedDeviceFeatures.optionalVulkan12Features.descriptorIndexing = VK_TRUE;
-    requestedDeviceFeatures.optionalVulkan12Features.descriptorBindingVariableDescriptorCount = VK_TRUE;
-    requestedDeviceFeatures.optionalVulkan12Features.runtimeDescriptorArray = VK_TRUE;
-    requestedDeviceFeatures.optionalVulkan12Features.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
-    requestedDeviceFeatures.optionalVulkan12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    requestedDeviceFeatures.requestedPhysicalDeviceFeatures.shaderStorageBufferArrayDynamicIndexing = VK_TRUE; // optionalPhysicalDeviceFeatures?
+    requestedDeviceFeatures.requestedPhysicalDeviceFeatures.shaderSampledImageArrayDynamicIndexing = VK_TRUE; // optionalPhysicalDeviceFeatures?
+    requestedDeviceFeatures.requestedPhysicalDeviceFeatures.shaderInt64 = VK_TRUE; // optionalPhysicalDeviceFeatures?
+    // optionalVulkan12Features?
+    requestedDeviceFeatures.requestedVulkan12Features.descriptorIndexing = VK_TRUE;
+    requestedDeviceFeatures.requestedVulkan12Features.descriptorBindingVariableDescriptorCount = VK_TRUE;
+    requestedDeviceFeatures.requestedVulkan12Features.runtimeDescriptorArray = VK_TRUE;
+    requestedDeviceFeatures.requestedVulkan12Features.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
+    requestedDeviceFeatures.requestedVulkan12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
     device->createDeviceHeadless(
             instance, {
                     VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,

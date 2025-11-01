@@ -29,11 +29,13 @@
 #include <iostream>
 #include <cstring>
 
+#include <Math/Math.hpp>
 #include <Utils/AppSettings.hpp>
 #include <Graphics/Vulkan/Utils/SyncObjects.hpp>
 #include <Graphics/Vulkan/Buffers/Buffer.hpp>
 #include <Graphics/Vulkan/Render/Renderer.hpp>
 #include <Graphics/Vulkan/Render/Passes/Pass.hpp>
+#include <ImGui/Widgets/NumberFormatting.hpp>
 
 #include "Tests.hpp"
 
@@ -45,7 +47,7 @@ const int NUM_TESTS = 4;
 constexpr uint32_t xs = 250;
 constexpr uint32_t ys = 352;
 constexpr uint32_t zs = 20;
-constexpr uint32_t cs = 310;
+constexpr uint32_t cs = 300;
 
 class BufferTestComputePass : public sgl::vk::ComputePass {
 public:
@@ -142,6 +144,59 @@ void BufferTestComputePass::_render() {
 }
 
 void runTests() {
+    sgl::vk::Device* device = sgl::AppSettings::get()->getPrimaryDevice();
+    std::cout << "Max memory allocations: "
+            << sgl::getNiceMemoryStringDifference(device->getLimits().maxMemoryAllocationCount, 2, true) << std::endl;
+    std::cout << "Max storage buffer range: "
+            << sgl::getNiceMemoryStringDifference(device->getLimits().maxStorageBufferRange, 2, true) << std::endl;
+    std::cout << "Max memory allocation size: "
+            << sgl::getNiceMemoryStringDifference(device->getPhysicalDeviceVulkan11Properties().maxMemoryAllocationSize, 2, true) << std::endl;
+    std::cout << "Supports shader 64-bit indexing: " << (device->getShader64BitIndexingFeaturesEXT().shader64BitIndexing ? "Yes" : "No") << std::endl;
+
+    std::vector<std::string> flagsStringMap = {
+            "device local",  // VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+            "host visible",  // VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
+            "host coherent", // VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+            "host cached"    // VK_MEMORY_PROPERTY_HOST_CACHED_BIT
+    };
+    const VkPhysicalDeviceMemoryProperties& deviceMemoryProperties = device->getMemoryProperties();
+    for (uint32_t heapIdx = 0; heapIdx < deviceMemoryProperties.memoryHeapCount; heapIdx++) {
+        VkMemoryPropertyFlagBits typeFlags{};
+        for (uint32_t memoryTypeIdx = 0; memoryTypeIdx < deviceMemoryProperties.memoryTypeCount; memoryTypeIdx++) {
+            if (deviceMemoryProperties.memoryTypes[memoryTypeIdx].heapIndex == heapIdx) {
+                typeFlags = VkMemoryPropertyFlagBits(typeFlags | deviceMemoryProperties.memoryTypes[memoryTypeIdx].propertyFlags);
+            }
+        }
+        std::string memoryHeapInfo;
+        if (typeFlags != 0) {
+            memoryHeapInfo = " (";
+            typeFlags = VkMemoryPropertyFlagBits(typeFlags & 0xF);
+            auto numEntries = int(sgl::popcount(uint32_t(typeFlags)));
+            int entryIdx = 0;
+            for (int i = 0; i < 4; i++) {
+                auto flag = VkMemoryPropertyFlagBits(1 << i);
+                if ((typeFlags & flag) != 0) {
+                    memoryHeapInfo += flagsStringMap[i];
+                    if (entryIdx != numEntries - 1) {
+                        memoryHeapInfo += ", ";
+                    }
+                    entryIdx++;
+                }
+            }
+            memoryHeapInfo += ")";
+        }
+        bool hasTypeDeviceLocal = (typeFlags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) != 0;
+        bool isHeapDeviceLocal = (deviceMemoryProperties.memoryHeaps[heapIdx].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0;
+        if (hasTypeDeviceLocal != isHeapDeviceLocal) {
+            sgl::Logfile::get()->writeError("Encountered memory heap with mismatching heap and type flags.");
+        }
+        std::cout
+                << "Memory heap #" << heapIdx << ": "
+                << sgl::getNiceMemoryStringDifference(deviceMemoryProperties.memoryHeaps[heapIdx].size, 2, true)
+                << memoryHeapInfo << std::endl;
+    }
+    std::cout << std::endl;
+
     size_t numEntries3D = size_t(xs) * size_t(ys) * size_t(zs);
     size_t numEntries = size_t(xs) * size_t(ys) * size_t(zs) * size_t(cs);
     size_t sizeInBytes3D = sizeof(float) * numEntries3D;
@@ -149,25 +204,30 @@ void runTests() {
 
     auto* data = new float[numEntries];
     memset(data, 0, sizeInBytes);
+    for (size_t i = 0; i < numEntries - 1; i++) {
+        data[i] = 7.0f;
+    }
     data[numEntries - 1] = 42.0f;
-    sgl::vk::Device* device = sgl::AppSettings::get()->getPrimaryDevice();
     sgl::vk::BufferPtr fieldsBuffer(new sgl::vk::Buffer(
             device, sizeInBytes, data,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            VMA_MEMORY_USAGE_GPU_ONLY, true, true, true));
+            VMA_MEMORY_USAGE_GPU_ONLY));
     delete[] data;
 
     data = new float[numEntries3D];
     memset(data, 0, sizeInBytes3D);
+    for (size_t i = 0; i < numEntries3D - 1; i++) {
+        data[i] = 7.0f;
+    }
     sgl::vk::BufferPtr fieldBuffer0(new sgl::vk::Buffer(
             device, sizeInBytes3D, data,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            VMA_MEMORY_USAGE_GPU_ONLY, true, true, true));
+            VMA_MEMORY_USAGE_GPU_ONLY));
     data[numEntries3D - 1] = 42.0f;
     sgl::vk::BufferPtr fieldBuffer1(new sgl::vk::Buffer(
             device, sizeInBytes3D, data,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            VMA_MEMORY_USAGE_GPU_ONLY, true, true, true));
+            VMA_MEMORY_USAGE_GPU_ONLY));
     delete[] data;
     std::vector<sgl::vk::BufferPtr> fieldBuffers;
     for (uint32_t i = 0; i < cs - 1; i++) {
@@ -186,7 +246,7 @@ void runTests() {
     VkCommandPool commandPool{};
     VkCommandBuffer commandBuffer = device->allocateCommandBuffer(commandPoolType, &commandPool);
 
-    auto* renderer = new sgl::vk::Renderer(device, 10);
+    auto* renderer = new sgl::vk::Renderer(device, 2000);
     for (int i = 0; i < NUM_TESTS; i++) {
         renderer->setCustomCommandBuffer(commandBuffer, false);
         renderer->beginCommandBuffer();

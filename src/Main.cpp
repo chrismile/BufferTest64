@@ -26,7 +26,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <Utils/StringUtils.hpp>
 #include <Utils/AppSettings.hpp>
 #include <Utils/AppLogic.hpp>
 #include <Utils/File/FileUtils.hpp>
@@ -40,7 +39,6 @@
 #include "Tests.hpp"
 
 void vulkanErrorCallbackHeadless() {
-    SDL_CaptureMouse(SDL_FALSE);
     std::cerr << "Application callback" << std::endl;
 }
 
@@ -61,7 +59,6 @@ int main(int argc, char *argv[]) {
 
     sgl::AppSettings::get()->setRenderSystem(sgl::RenderSystem::VULKAN);
 
-    std::vector<const char*> optionalDeviceExtensions;
     sgl::AppSettings::get()->createHeadless();
 
     sgl::vk::Instance* instance = sgl::AppSettings::get()->getVulkanInstance();
@@ -83,7 +80,12 @@ int main(int argc, char *argv[]) {
                     VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
                     VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
             },
-            optionalDeviceExtensions, requestedDeviceFeatures);
+            {
+#ifdef VK_EXT_shader_64bit_indexing
+                    VK_EXT_SHADER_64BIT_INDEXING_EXTENSION_NAME
+#endif
+            },
+            requestedDeviceFeatures);
 
     sgl::AppSettings::get()->setPrimaryDevice(device);
     sgl::AppSettings::get()->initializeSubsystems();

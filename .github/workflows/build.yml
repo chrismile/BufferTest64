@@ -28,18 +28,13 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-name: Handle Release
+name: Build
 
-#on:
-#  push:
-#    tags:
-#      - "v*.*.*"
 on:
-  release:
-    types: [created]
-
-permissions:
-    contents: write
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   generate:
@@ -62,15 +57,12 @@ jobs:
             target_name: x86_64-windows-gnu
             shell: 'msys2 {0}'
 
-    name: "Create release-artifacts target ${{ matrix.target_name }}"
+    name: "${{ github.workflow }} target ${{ matrix.target_name }}"
     runs-on: ${{ matrix.os }}
 
     defaults:
       run:
         shell: ${{ matrix.shell }}
-
-    env:
-      artifact_name: ${{ github.event.repository.name }}-${{ github.event.release.tag_name }}-${{ matrix.target_name }}
 
     steps:
       - uses: actions/checkout@v2
@@ -127,20 +119,3 @@ jobs:
           if [ "${{ matrix.target_name }}" == "x86_64-windows-gnu" ]; then
               cp "$(ntldd "build/${proj_name}.exe" | grep libwinpthread | awk '{print $3}')" dist/
           fi
-          mv dist ${{ env.artifact_name }}
-
-      #- name: Create archive (Unix)
-      #  shell: bash
-      #  run: |
-      #    zip -r ${{ env.artifact_name }}.zip ${{ env.artifact_name }}
-      - uses: vimtor/action-zip@v1.2
-        with:
-          files: ${{ env.artifact_name }}/
-          dest: ${{ env.artifact_name }}.zip
-
-      # Needs "Read and write permission" under "Workflow permissions" on https://github.com/chrismile/tetgen/settings/actions.
-      - name: Create release
-        uses: softprops/action-gh-release@v2
-        #if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: ${{ env.artifact_name }}.zip

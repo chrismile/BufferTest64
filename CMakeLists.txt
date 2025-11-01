@@ -76,6 +76,7 @@ file(GLOB_RECURSE SOURCES_GLSLANG
 add_library(glslang STATIC ${SOURCES_GLSLANG})
 target_compile_definitions(glslang PRIVATE ENABLE_SPIRV)
 target_include_directories(glslang PUBLIC third_party/glslang)
+target_include_directories(glslang PUBLIC third_party/custom)
 
 add_executable(BufferTest64 ${SOURCES} ${CUDA_SOURCES})
 target_include_directories(BufferTest64 PRIVATE third_party/sgl/src)

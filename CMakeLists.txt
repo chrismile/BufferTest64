@@ -67,18 +67,31 @@ list(APPEND SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/sgl/src/Graphics/Vu
 list(APPEND SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/sgl/src/Graphics/Vulkan/Render/Renderer.cpp")
 list(APPEND SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/third_party/sgl/src/Graphics/Vulkan/Render/Passes/Pass.cpp")
 
+if (WIN32)
+    set(GLSLANG_SYS_NAME "Windows")
+else()
+    set(GLSLANG_SYS_NAME "Unix")
+endif()
 file(GLOB_RECURSE SOURCES_GLSLANG
         third_party/glslang/SPIRV/*.cpp
         third_party/glslang/glslang/CInterface/*.cpp
         third_party/glslang/glslang/GenericCodeGen/*.cpp
         third_party/glslang/glslang/MachineIndependent/*.cpp
         third_party/glslang/glslang/ResourceLimits/*.cpp)
+file(GLOB_RECURSE SOURCES_GLSLANG
+        third_party/glslang/SPIRV/*.cpp
+        third_party/glslang/glslang/CInterface/*.cpp
+        third_party/glslang/glslang/GenericCodeGen/*.cpp
+        third_party/glslang/glslang/MachineIndependent/*.cpp
+        third_party/glslang/glslang/ResourceLimits/*.cpp
+        third_party/glslang/glslang/OSDependent/${GLSLANG_SYS_NAME}/*.cpp)
 add_library(glslang STATIC ${SOURCES_GLSLANG})
 target_compile_definitions(glslang PRIVATE ENABLE_SPIRV)
 target_include_directories(glslang PUBLIC third_party/glslang)
 target_include_directories(glslang PUBLIC third_party/custom)
 
 add_executable(BufferTest64 ${SOURCES} ${CUDA_SOURCES})
+target_include_directories(BufferTest64 PRIVATE third_party)
 target_include_directories(BufferTest64 PRIVATE third_party/sgl/src)
 target_include_directories(BufferTest64 PRIVATE third_party/sgl/src/Graphics/Vulkan/libs)
 target_include_directories(BufferTest64 PRIVATE third_party/sgl/src/Graphics/Vulkan/libs/Vulkan-Headers)

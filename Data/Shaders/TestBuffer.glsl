@@ -43,6 +43,10 @@ layout (binding = 1) uniform UniformBuffer {
 #define IDXS(x,y,z) ((z)*xs*ys + (y)*xs + (x))
 #define IDXM(x,y,z,c) ((c)*xs*ys*zs + (z)*xs*ys + (y)*xs + (x))
 
+// Seems like ifdef around pragma does not correctly disable it...
+//#ifdef GL_EXT_shader_64bit_indexing
+//#pragma shader_64bit_indexing
+//#endif
 void main() {
     const uint xs = uint(XS);
     const uint ys = uint(YS);

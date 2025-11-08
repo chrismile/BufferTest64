@@ -39,15 +39,42 @@
 
 #include "Tests.hpp"
 
-enum class TestMode {
-    STORAGE_BUFFER, STORAGE_BUFFER_ARRAY, BUFFER_REFERENCE, BUFFER_REFERENCE_ARRAY
-};
-const int NUM_TESTS = 4;
+#include "Graphics/Vulkan/Render/ComputePipeline.hpp"
 
+enum class TestMode {
+    STORAGE_BUFFER = 0,
+    STORAGE_BUFFER_ARRAY = 1,
+    BUFFER_REFERENCE = 2,
+    BUFFER_REFERENCE_ARRAY = 3,
+    STORAGE_BUFFER_64_BIT = 4,
+    BUFFER_REFERENCE_64_BIT = 5,
+    BUFFER_REFERENCE_ARRAY_64_BIT = 6,
+};
+const int NUM_TESTS = 7;
+const char* TEST_MODE_NAMES[] = {
+    "Storage buffer",
+    "Storage buffer array",
+    "Buffer reference",
+    "Buffer reference array",
+    "Storage buffer (64-bit)",
+    "Buffer reference (64-bit)",
+    "Buffer reference array (64-bit)",
+};
+bool TEST_MODE_USES_ARRAY[] = {
+    false,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+};
+
+// Total allocation size: approx. 4.59GiB
 constexpr uint32_t xs = 250;
 constexpr uint32_t ys = 352;
 constexpr uint32_t zs = 20;
-constexpr uint32_t cs = 300;
+constexpr uint32_t cs = 700;
 
 class BufferTestComputePass : public sgl::vk::ComputePass {
 public:
@@ -59,6 +86,7 @@ public:
 
 protected:
     void loadShader() override;
+    void setComputePipelineInfo(sgl::vk::ComputePipelineInfo& pipelineInfo) override;
     void createComputeData(sgl::vk::Renderer* renderer, sgl::vk::ComputePipelinePtr& computePipeline) override;
     void _render() override;
 
@@ -104,28 +132,42 @@ void BufferTestComputePass::loadShader() {
     preprocessorDefines.insert(std::make_pair("YS", std::to_string(ys)));
     preprocessorDefines.insert(std::make_pair("ZS", std::to_string(zs)));
     preprocessorDefines.insert(std::make_pair("MEMBER_COUNT", std::to_string(cs)));
-    if (testMode == TestMode::STORAGE_BUFFER) {
+    if (testMode == TestMode::STORAGE_BUFFER || testMode == TestMode::STORAGE_BUFFER_64_BIT) {
         preprocessorDefines.insert(std::make_pair("INPUT_STORAGE_BUFFER", ""));
     } else if (testMode == TestMode::STORAGE_BUFFER_ARRAY) {
         preprocessorDefines.insert(std::make_pair("INPUT_STORAGE_BUFFER_ARRAY", ""));
-    } else if (testMode == TestMode::BUFFER_REFERENCE) {
+    } else if (testMode == TestMode::BUFFER_REFERENCE || testMode == TestMode::BUFFER_REFERENCE_64_BIT) {
         preprocessorDefines.insert(std::make_pair("INPUT_BUFFER_REFERENCE", ""));
-    } else if (testMode == TestMode::BUFFER_REFERENCE_ARRAY) {
+    } else if (testMode == TestMode::BUFFER_REFERENCE_ARRAY || testMode == TestMode::BUFFER_REFERENCE_ARRAY_64_BIT) {
         preprocessorDefines.insert(std::make_pair("INPUT_BUFFER_REFERENCE_ARRAY", ""));
     }
+    if (testMode == TestMode::STORAGE_BUFFER_64_BIT || testMode == TestMode::BUFFER_REFERENCE_64_BIT
+            || testMode == TestMode::BUFFER_REFERENCE_ARRAY_64_BIT) {
+        // https://github.com/KhronosGroup/GLSL/blob/main/extensions/ext/GL_EXT_shader_64bit_indexing.txt
+        // https://github.khronos.org/SPIRV-Registry/extensions/EXT/SPV_EXT_shader_64bit_indexing.html
+        preprocessorDefines.insert(std::make_pair("__extensions", "GL_EXT_shader_64bit_indexing"));
+    }
     shaderStages = sgl::vk::ShaderManager->getShaderStages({ "TestBuffer.Compute" }, preprocessorDefines);
+}
+
+void BufferTestComputePass::setComputePipelineInfo(sgl::vk::ComputePipelineInfo& pipelineInfo) {
+    if (testMode == TestMode::STORAGE_BUFFER_64_BIT || testMode == TestMode::BUFFER_REFERENCE_64_BIT
+            || testMode == TestMode::BUFFER_REFERENCE_ARRAY_64_BIT) {
+        // https://docs.vulkan.org/refpages/latest/refpages/source/VK_EXT_shader_64bit_indexing.html
+        pipelineInfo.setUse64BitIndexing(true);
+    }
 }
 
 void BufferTestComputePass::createComputeData(sgl::vk::Renderer* renderer, sgl::vk::ComputePipelinePtr& computePipeline) {
     computeData = std::make_shared<sgl::vk::ComputeData>(renderer, computePipeline);
     computeData->setStaticBuffer(outputBuffer, "OutputBuffer");
-    if (testMode == TestMode::STORAGE_BUFFER) {
+    if (testMode == TestMode::STORAGE_BUFFER || testMode == TestMode::STORAGE_BUFFER_64_BIT) {
         computeData->setStaticBuffer(fieldsBuffer, "InputBuffer");
     } else if (testMode == TestMode::STORAGE_BUFFER_ARRAY) {
         computeData->setStaticBufferArray(fieldBuffers, "InputBuffers");
-    } else if (testMode == TestMode::BUFFER_REFERENCE) {
+    } else if (testMode == TestMode::BUFFER_REFERENCE || testMode == TestMode::BUFFER_REFERENCE_64_BIT) {
         computeData->setStaticBuffer(fieldsBuffer, "InputBuffer");
-    } else if (testMode == TestMode::BUFFER_REFERENCE_ARRAY) {
+    } else if (testMode == TestMode::BUFFER_REFERENCE_ARRAY || testMode == TestMode::BUFFER_REFERENCE_ARRAY_64_BIT) {
         computeData->setStaticBuffer(uniformBuffer, "UniformBuffer");
     }
 }
@@ -202,41 +244,8 @@ void runTests() {
     size_t sizeInBytes3D = sizeof(float) * numEntries3D;
     size_t sizeInBytes = sizeof(float) * numEntries;
 
-    auto* data = new float[numEntries];
-    memset(data, 0, sizeInBytes);
-    for (size_t i = 0; i < numEntries - 1; i++) {
-        data[i] = 7.0f;
-    }
-    data[numEntries - 1] = 42.0f;
-    sgl::vk::BufferPtr fieldsBuffer(new sgl::vk::Buffer(
-            device, sizeInBytes, data,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            VMA_MEMORY_USAGE_GPU_ONLY));
-    delete[] data;
-
-    data = new float[numEntries3D];
-    memset(data, 0, sizeInBytes3D);
-    for (size_t i = 0; i < numEntries3D - 1; i++) {
-        data[i] = 7.0f;
-    }
-    sgl::vk::BufferPtr fieldBuffer0(new sgl::vk::Buffer(
-            device, sizeInBytes3D, data,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            VMA_MEMORY_USAGE_GPU_ONLY));
-    data[numEntries3D - 1] = 42.0f;
-    sgl::vk::BufferPtr fieldBuffer1(new sgl::vk::Buffer(
-            device, sizeInBytes3D, data,
-            VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-            VMA_MEMORY_USAGE_GPU_ONLY));
-    delete[] data;
-    std::vector<sgl::vk::BufferPtr> fieldBuffers;
-    for (uint32_t i = 0; i < cs - 1; i++) {
-        fieldBuffers.push_back(fieldBuffer0);
-    }
-    fieldBuffers.push_back(fieldBuffer1);
-
     auto outputStagingBuffer = std::make_shared<sgl::vk::Buffer>(
-            device, sizeof(float), &data,
+            device, sizeof(float),
             VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 
     auto fence = std::make_shared<sgl::vk::Fence>(device);
@@ -246,23 +255,60 @@ void runTests() {
     VkCommandPool commandPool{};
     VkCommandBuffer commandBuffer = device->allocateCommandBuffer(commandPoolType, &commandPool);
 
+    std::cout << "Allocation size " << sgl::getNiceMemoryString(sizeInBytes, 2) << std::endl;
+
     auto* renderer = new sgl::vk::Renderer(device, 2000);
     for (int i = 0; i < NUM_TESTS; i++) {
+        std::cout << "Starting test case '" << TEST_MODE_NAMES[i] << "'..." << std::endl;
         renderer->setCustomCommandBuffer(commandBuffer, false);
         renderer->beginCommandBuffer();
 
         auto testMode = TestMode(i);
         auto pass0 = std::make_shared<BufferTestComputePass>(renderer);
         pass0->setTestMode(testMode);
-        pass0->setFieldsBuffer(fieldsBuffer);
-        pass0->setFieldBuffers(fieldBuffers);
+        if (TEST_MODE_USES_ARRAY[i]) {
+            auto* data = new float[numEntries3D];
+            memset(data, 0, sizeInBytes3D);
+            for (size_t i = 0; i < numEntries3D - 1; i++) {
+                data[i] = 7.0f;
+            }
+            sgl::vk::BufferPtr fieldBuffer0(new sgl::vk::Buffer(
+                    device, sizeInBytes3D, data,
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                    VMA_MEMORY_USAGE_GPU_ONLY));
+            data[numEntries3D - 1] = 42.0f;
+            sgl::vk::BufferPtr fieldBuffer1(new sgl::vk::Buffer(
+                    device, sizeInBytes3D, data,
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                    VMA_MEMORY_USAGE_GPU_ONLY));
+            delete[] data;
+            std::vector<sgl::vk::BufferPtr> fieldBuffers;
+            for (uint32_t j = 0; j < cs - 1; j++) {
+                fieldBuffers.push_back(fieldBuffer0);
+            }
+            fieldBuffers.push_back(fieldBuffer1);
+            pass0->setFieldBuffers(fieldBuffers);
+        } else {
+            auto* data = new float[numEntries];
+            memset(data, 0, sizeInBytes);
+            for (size_t j = 0; j < numEntries - 1; j++) {
+                data[j] = 7.0f;
+            }
+            data[numEntries - 1] = 42.0f;
+            sgl::vk::BufferPtr fieldsBuffer(new sgl::vk::Buffer(
+                    device, sizeInBytes, data,
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+                    VMA_MEMORY_USAGE_GPU_ONLY));
+            delete[] data;
+            pass0->setFieldsBuffer(fieldsBuffer);
+        }
         auto outputBuffer = pass0->getOutputBuffer();
         pass0->render();
 
         renderer->insertBufferMemoryBarrier(
                 VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
                 VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                outputStagingBuffer);
+                outputBuffer);
         outputBuffer->copyDataTo(outputStagingBuffer, renderer->getVkCommandBuffer());
 
         renderer->endCommandBuffer();
@@ -272,7 +318,13 @@ void runTests() {
         fence->reset();
 
         auto* outputValue = static_cast<float*>(outputStagingBuffer->mapMemory());
-        std::cout << "Test case " << i << ": " << (*outputValue) << std::endl;
+        std::string testResult;
+        if (*outputValue == 42) {
+            testResult = "Passed";
+        } else {
+            testResult = "Failed";
+        }
+        std::cout << "Test case '" << TEST_MODE_NAMES[i] << "': " << testResult << " (" << (*outputValue) << ")" << std::endl;
         outputStagingBuffer->unmapMemory();
     }
 

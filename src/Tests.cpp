@@ -71,10 +71,14 @@ bool TEST_MODE_USES_ARRAY[] = {
 };
 
 // Total allocation size: approx. 4.59GiB
-constexpr uint32_t xs = 250;
-constexpr uint32_t ys = 352;
-constexpr uint32_t zs = 20;
-constexpr uint32_t cs = 700;
+//constexpr uint32_t xs = 250;
+//constexpr uint32_t ys = 352;
+//constexpr uint32_t zs = 20;
+//constexpr uint32_t cs = 700;
+constexpr uint32_t xs = 512;
+constexpr uint32_t ys = 512;
+constexpr uint32_t zs = 512;
+constexpr uint32_t cs = 5;
 
 class BufferTestComputePass : public sgl::vk::ComputePass {
 public:
@@ -146,6 +150,7 @@ void BufferTestComputePass::loadShader() {
         // https://github.com/KhronosGroup/GLSL/blob/main/extensions/ext/GL_EXT_shader_64bit_indexing.txt
         // https://github.khronos.org/SPIRV-Registry/extensions/EXT/SPV_EXT_shader_64bit_indexing.html
         preprocessorDefines.insert(std::make_pair("__extensions", "GL_EXT_shader_64bit_indexing"));
+        preprocessorDefines.insert(std::make_pair("USE_64_BIT_INDEXING", ""));
     }
     shaderStages = sgl::vk::ShaderManager->getShaderStages({ "TestBuffer.Compute" }, preprocessorDefines);
 }
@@ -292,7 +297,8 @@ void runTests() {
             auto* data = new float[numEntries];
             memset(data, 0, sizeInBytes);
             for (size_t j = 0; j < numEntries - 1; j++) {
-                data[j] = 7.0f;
+                //data[j] = 7.0f;
+                data[j] = float(j);
             }
             data[numEntries - 1] = 42.0f;
             sgl::vk::BufferPtr fieldsBuffer(new sgl::vk::Buffer(

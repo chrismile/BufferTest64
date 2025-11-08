@@ -6,6 +6,10 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 #extension GL_EXT_buffer_reference : require
 #extension GL_EXT_buffer_reference2 : require
+#ifdef USE_64_BIT_INDEXING
+#pragma shader_64bit_indexing
+#pragma promote_uint32_indices
+#endif
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
@@ -41,12 +45,12 @@ layout (binding = 1) uniform UniformBuffer {
 #endif
 
 #define IDXS(x,y,z) ((z)*xs*ys + (y)*xs + (x))
+#ifdef USE_64_BIT_INDEXING
+#define IDXM(x,y,z,c) (uint64_t(c)*uint64_t(xs*ys*zs) + uint64_t(z)*uint64_t(xs*ys) + uint64_t(y)*uint64_t(xs) + uint64_t(x))
+#else
 #define IDXM(x,y,z,c) ((c)*xs*ys*zs + (z)*xs*ys + (y)*xs + (x))
+#endif
 
-// Seems like ifdef around pragma does not correctly disable it...
-//#ifdef GL_EXT_shader_64bit_indexing
-//#pragma shader_64bit_indexing
-//#endif
 void main() {
     const uint xs = uint(XS);
     const uint ys = uint(YS);
@@ -60,10 +64,7 @@ void main() {
 #elif defined(INPUT_BUFFER_REFERENCE)
     outputValue = fieldBuffers.values[IDXM(xs-1u, ys-1u, zs-1u, cs-1u)];
 #elif defined(INPUT_BUFFER_REFERENCE_ARRAY)
-    //float inputBuffer = InputBuffer(0);
-    //outputValue = inputBuffer;
     InputBuffer fb2 = InputBuffer(fieldsBuffer + 4 * uint64_t(IDXM(xs-1u, ys-1u, zs-1u, cs-1u)));
     outputValue = fb2.value;
 #endif
-    //outputValue = 9.0f;
 }

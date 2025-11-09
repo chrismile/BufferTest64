@@ -54,9 +54,11 @@ int main(int argc, char *argv[]) {
 #endif
     sgl::AppSettings::get()->initializeDataDirectory();
 
-    // Load the file containing the app settings
+    // Do not save the settings; this app does not use any UI functionality.
     sgl::AppSettings::get()->setSaveSettings(false);
-    sgl::AppSettings::get()->getSettings().addKeyValue("window-debugContext", true);
+    // Disable the debug layers, as we know some of the tests without VK_EXT_shader_64bit_indexing are not conformant
+    // to the Vulkan standard.
+    sgl::AppSettings::get()->getSettings().addKeyValue("window-debugContext", false);
 
     sgl::AppSettings::get()->setRenderSystem(sgl::RenderSystem::VULKAN);
 

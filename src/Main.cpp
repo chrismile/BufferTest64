@@ -37,6 +37,7 @@
 #include <Graphics/Vulkan/Shader/ShaderManager.hpp>
 
 #include "Tests.hpp"
+#include "Math/Math.hpp"
 
 void vulkanErrorCallbackHeadless() {
     std::cerr << "Application callback" << std::endl;
@@ -63,7 +64,6 @@ int main(int argc, char *argv[]) {
 
     sgl::vk::Instance* instance = sgl::AppSettings::get()->getVulkanInstance();
     sgl::AppSettings::get()->getVulkanInstance()->setDebugCallback(&vulkanErrorCallbackHeadless);
-    auto* device = new sgl::vk::Device;
     sgl::vk::DeviceFeatures requestedDeviceFeatures{};
     requestedDeviceFeatures.requestedPhysicalDeviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
     requestedDeviceFeatures.requestedPhysicalDeviceFeatures.shaderStorageBufferArrayDynamicIndexing = VK_TRUE; // optionalPhysicalDeviceFeatures?
@@ -75,23 +75,51 @@ int main(int argc, char *argv[]) {
     requestedDeviceFeatures.requestedVulkan12Features.runtimeDescriptorArray = VK_TRUE;
     requestedDeviceFeatures.requestedVulkan12Features.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
     requestedDeviceFeatures.requestedVulkan12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-    device->createDeviceHeadless(
-            instance, {
-                    VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
-                    VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
-            },
-            {
-#ifdef VK_EXT_shader_64bit_indexing
-                    VK_EXT_SHADER_64BIT_INDEXING_EXTENSION_NAME
-#endif
-            },
-            requestedDeviceFeatures);
+    requestedDeviceFeatures.optionalVulkan12Features.storageBuffer8BitAccess = VK_TRUE;
+    std::vector<const char*> requiredDeviceExtensions = {
+            VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME, VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME,
+            VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+    };
+    std::vector<const char*> optionalDeviceExtensions = {
+            VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME,
+            VK_KHR_8BIT_STORAGE_EXTENSION_NAME,
+            VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+            // https://docs.vulkan.org/refpages/latest/refpages/source/VK_EXT_external_memory_host.html
+            VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME,
+            // https://docs.vulkan.org/refpages/latest/refpages/source/VK_EXT_shader_64bit_indexing.html
+            VK_EXT_SHADER_64BIT_INDEXING_EXTENSION_NAME
+    };
 
-    sgl::AppSettings::get()->setPrimaryDevice(device);
-    sgl::AppSettings::get()->initializeSubsystems();
+    std::vector<VkPhysicalDevice> physicalDevices = sgl::vk::enumeratePhysicalDevices(instance);
+    std::vector<VkPhysicalDevice> suitablePhysicalDevices;
+    VkPhysicalDeviceProperties physicalDeviceProperties{};
+    for (auto& physicalDevice : physicalDevices) {
+        sgl::vk::getPhysicalDeviceProperties(physicalDevice, physicalDeviceProperties);
+        if (physicalDeviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU) {
+            continue;
+        }
+        if (sgl::vk::checkIsPhysicalDeviceSuitable(
+                instance, physicalDevice, nullptr, requiredDeviceExtensions, requestedDeviceFeatures, true)) {
+            suitablePhysicalDevices.push_back(physicalDevice);
+        }
+    }
+    for (size_t i = 0; i < suitablePhysicalDevices.size(); i++) {
+        if (i != 0) {
+            std::cout << std::endl << "--------------------------------------------" << std::endl << std::endl;
+        }
+        auto physicalDevice = suitablePhysicalDevices.at(i);
+        auto* device = new sgl::vk::Device;
+        device->createDeviceHeadlessFromPhysicalDevice(
+                instance, physicalDevice, requiredDeviceExtensions,
+                optionalDeviceExtensions, requestedDeviceFeatures, false);
 
-    runTests();
+        sgl::AppSettings::get()->setPrimaryDevice(device);
+        sgl::AppSettings::get()->initializeSubsystems();
 
+        runTests();
+
+        sgl::AppSettings::get()->releaseDeviceHeadless();
+    }
     sgl::AppSettings::get()->release();
 
     return 0;

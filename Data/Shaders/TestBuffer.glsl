@@ -14,30 +14,30 @@
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout (binding = 0) writeonly buffer OutputBuffer {
-    float outputValue;
+    DATA_TYPE outputValue;
 };
 
 #if defined(INPUT_STORAGE_BUFFER)
 layout (binding = 1, std430) readonly buffer InputBuffer {
-    float values[];
+    DATA_TYPE values[];
 };
 #endif
 
 #if defined(INPUT_STORAGE_BUFFER_ARRAY)
 layout (binding = 1, std430) readonly buffer InputBuffers {
-    float values[];
+    DATA_TYPE values[];
 } fieldBuffers[MEMBER_COUNT];
 #endif
 
 #if defined(INPUT_BUFFER_REFERENCE)
 layout (binding = 1, buffer_reference, std430) readonly buffer InputBuffer {
-    float values[];
+    DATA_TYPE values[];
 } fieldBuffers;
 #endif
 
 #if defined(INPUT_BUFFER_REFERENCE_ARRAY)
 layout (buffer_reference, std430, buffer_reference_align = 4) buffer InputBuffer {
-    float value;
+    DATA_TYPE value;
 };
 layout (binding = 1) uniform UniformBuffer {
     uint64_t fieldsBuffer;
@@ -64,7 +64,7 @@ void main() {
 #elif defined(INPUT_BUFFER_REFERENCE)
     outputValue = fieldBuffers.values[IDXM(xs-1u, ys-1u, zs-1u, cs-1u)];
 #elif defined(INPUT_BUFFER_REFERENCE_ARRAY)
-    InputBuffer fb2 = InputBuffer(fieldsBuffer + 4 * uint64_t(IDXM(xs-1u, ys-1u, zs-1u, cs-1u)));
+    InputBuffer fb2 = InputBuffer(fieldsBuffer + DATA_TYPE_SIZE * uint64_t(IDXM(xs-1u, ys-1u, zs-1u, cs-1u)));
     outputValue = fb2.value;
 #endif
 }

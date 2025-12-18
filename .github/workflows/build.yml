@@ -82,7 +82,6 @@ jobs:
             wget
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-ntldd
 
       - name: Build target
         run: |
@@ -116,6 +115,3 @@ jobs:
           cp -r docs/license-libraries dist/docs/license-libraries
           cp README.md dist/docs
           cp LICENSE dist/docs
-          if [ "${{ matrix.target_name }}" == "x86_64-windows-gnu" ]; then
-              cp "$(ntldd "build/${proj_name}.exe" | grep libwinpthread | awk '{print $3}')" dist/
-          fi

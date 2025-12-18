@@ -110,7 +110,7 @@ target_link_libraries(BufferTest64 PRIVATE glslang)
 
 if (${USE_STATIC_STD_LIBRARIES})
     if((MSYS OR MINGW OR (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")) AND ${USE_STATIC_STD_LIBRARIES})
-        target_link_options(BufferTest64 PRIVATE -static-libgcc -static-libstdc++)
+        target_link_options(BufferTest64 PRIVATE -static-libgcc -static-libstdc++ -static -lpthread)
     endif()
     if(UNIX AND NOT APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         target_link_options(BufferTest64 PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/CMake/symbols_linux_gcc.map")

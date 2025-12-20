@@ -26,6 +26,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <Math/Math.hpp>
 #include <Utils/AppSettings.hpp>
 #include <Utils/AppLogic.hpp>
 #include <Utils/File/FileUtils.hpp>
@@ -37,7 +38,6 @@
 #include <Graphics/Vulkan/Shader/ShaderManager.hpp>
 
 #include "Tests.hpp"
-#include "Math/Math.hpp"
 
 void vulkanErrorCallbackHeadless() {
     std::cerr << "Application callback" << std::endl;

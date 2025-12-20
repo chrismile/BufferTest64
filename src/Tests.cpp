@@ -370,6 +370,9 @@ void runTests() {
         std::cout << "Device driver name: " << device->getDeviceDriverName() << std::endl;
         std::cout << "Device driver info: " << device->getDeviceDriverInfo() << std::endl;
         std::cout << "Device driver ID: " << device->getDeviceDriverId() << std::endl;
+        std::cout << "Device driver version: " << device->getDriverVersionString() << std::endl;
+        std::cout << "Device vendor ID: 0x" << sgl::toHexString(device->getPhysicalDeviceProperties().vendorID) << std::endl;
+        std::cout << "Device ID: 0x" << sgl::toHexString(device->getPhysicalDeviceProperties().deviceID) << std::endl;
     }
     std::cout << "Max memory allocations: "
             << sgl::getNiceMemoryStringDifference(device->getLimits().maxMemoryAllocationCount, 2, true) << std::endl;
